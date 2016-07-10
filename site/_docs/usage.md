@@ -7,7 +7,7 @@ permalink: /docs/usage/
 The Jekyll gem makes a `jekyll` executable available to you in your Terminal
 window. You can use this command in a number of ways:
 
-{% highlight bash %}
+{% highlight shell %}
 $ jekyll build
 # => The current folder will be generated into ./_site
 
@@ -21,6 +21,18 @@ $ jekyll build --watch
 # => The current folder will be generated into ./_site,
 #    watched for changes, and regenerated automatically.
 {% endhighlight %}
+
+<div class="note info">
+  <h5>Changes to _config.yml are not included during automatic regeneration.</h5>
+  <p>
+    The <code>_config.yml</code> master configuration file contains global configurations
+    and variable definitions that are read once at execution time. Changes made to <code>_config.yml</code>
+    during automatic regeneration are not loaded until the next execution.
+  </p>
+  <p>
+    Note <a href="../datafiles">Data Files</a> are included and reloaded during automatic regeneration.
+  </p>
+</div>
 
 <div class="note warning">
   <h5>Destination folders are cleaned on site builds</h5>
@@ -40,7 +52,7 @@ $ jekyll build --watch
 Jekyll also comes with a built-in development server that will allow you to
 preview what the generated site will look like in your browser locally.
 
-{% highlight bash %}
+{% highlight shell %}
 $ jekyll serve
 # => A development server will run at http://localhost:4000/
 # Auto-regeneration: enabled. Use `--no-watch` to disable.
@@ -58,7 +70,7 @@ $ jekyll serve --detach
   </p>
 </div>
 
-{% highlight bash %}
+{% highlight shell %}
 $ jekyll serve --no-watch
 # => Same as `jekyll serve` but will not watch for changes.
 {% endhighlight %}
@@ -77,7 +89,7 @@ destination: _deploy
 
 Then the following two commands will be equivalent:
 
-{% highlight bash %}
+{% highlight shell %}
 $ jekyll build
 $ jekyll build --source _source --destination _deploy
 {% endhighlight %}
