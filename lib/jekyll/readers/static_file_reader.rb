@@ -1,10 +1,12 @@
+# frozen_string_literal: true
+
 module Jekyll
   class StaticFileReader
     attr_reader :site, :dir, :unfiltered_content
     def initialize(site, dir)
       @site = site
       @dir = dir
-      @unfiltered_content = Array.new
+      @unfiltered_content = []
     end
 
     # Read all the files in <source>/<dir>/ for Yaml header and create a new Page
@@ -14,7 +16,9 @@ module Jekyll
     #
     # Returns an array of static files.
     def read(files)
-      files.map{ |file| @unfiltered_content << StaticFile.new(@site, @site.source, @dir, file)}
+      files.map do |file|
+        @unfiltered_content << StaticFile.new(@site, @site.source, @dir, file)
+      end
       @unfiltered_content
     end
   end

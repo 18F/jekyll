@@ -1,4 +1,6 @@
-require 'helper'
+# frozen_string_literal: true
+
+require "helper"
 
 class TestRegenerator < JekyllUnitTest
   context "The site regenerator" do
@@ -8,10 +10,10 @@ class TestRegenerator < JekyllUnitTest
       @site = fixture_site({
         "collections" => {
           "methods" => {
-            "output" => true
-          }
+            "output" => true,
+          },
         },
-        "full_rebuild" => false
+        "incremental" => true,
       })
 
       @site.read
@@ -39,17 +41,16 @@ class TestRegenerator < JekyllUnitTest
       # we need to create the destinations for these files,
       # because regenerate? checks if the destination exists
       [@page, @post, @document, @asset_file].each do |item|
-        if item.respond_to?(:destination) 
-          dest = item.destination(@site.dest)
-          FileUtils.mkdir_p(File.dirname(dest))
-          FileUtils.touch(dest)
-        end
+        next unless item.respond_to?(:destination)
+        dest = item.destination(@site.dest)
+        FileUtils.mkdir_p(File.dirname(dest))
+        FileUtils.touch(dest)
       end
       @regenerator.write_metadata
       @regenerator = Regenerator.new(@site)
 
       # these should pass, since nothing has changed, and the
-      # loop above made sure the desinations exist
+      # loop above made sure the designations exist
       assert !@regenerator.regenerate?(@page)
       assert !@regenerator.regenerate?(@post)
       assert !@regenerator.regenerate?(@document)
@@ -67,9 +68,9 @@ class TestRegenerator < JekyllUnitTest
 
       # make sure the files don't actually exist
       [@page, @post, @document, @asset_file].each do |item|
-        if item.respond_to?(:destination) 
+        if item.respond_to?(:destination)
           dest = item.destination(@site.dest)
-          File.unlink(dest) unless !File.exist?(dest)
+          File.unlink(dest) if File.exist?(dest)
         end
       end
 
@@ -92,9 +93,8 @@ class TestRegenerator < JekyllUnitTest
   context "The site regenerator" do
     setup do
       FileUtils.rm_rf(source_dir(".jekyll-metadata"))
-
       @site = fixture_site({
-        "full_rebuild" => false
+        "incremental" => true,
       })
 
       @site.read
@@ -113,7 +113,7 @@ class TestRegenerator < JekyllUnitTest
       assert_equal 1, @regenerator.metadata.size
       path = @regenerator.metadata.keys[0]
 
-      assert File.exist?(@layout_path)
+      assert_exist @layout_path
       @regenerator.add_dependency(path, @layout_path)
 
       File.rename(@layout_path, @layout_path + ".tmp")
@@ -129,8 +129,9 @@ class TestRegenerator < JekyllUnitTest
       FileUtils.rm_rf(source_dir(".jekyll-metadata"))
 
       @site = Site.new(Jekyll.configuration({
-        "source" => source_dir,
-        "destination" => dest_dir
+        "source"      => source_dir,
+        "destination" => dest_dir,
+        "incremental" => true,
       }))
 
       @site.process
@@ -152,7 +153,7 @@ class TestRegenerator < JekyllUnitTest
       assert @regenerator.cache[@path]
 
       @regenerator.clear_cache
-      assert_equal  @regenerator.cache, {}
+      assert_equal @regenerator.cache, {}
     end
 
     should "write to the metadata file" do
@@ -167,11 +168,11 @@ class TestRegenerator < JekyllUnitTest
       assert_equal File.mtime(@path), @regenerator.metadata[@path]["mtime"]
     end
 
-    should "read legacy yaml metadata" do
+    should "read legacy YAML metadata" do
       metadata_file = source_dir(".jekyll-metadata")
       @regenerator = Regenerator.new(@site)
 
-      File.open(metadata_file, 'w') do |f|
+      File.open(metadata_file, "w") do |f|
         f.write(@regenerator.metadata.to_yaml)
       end
 
@@ -182,7 +183,7 @@ class TestRegenerator < JekyllUnitTest
     should "not crash when reading corrupted marshal file" do
       metadata_file = source_dir(".jekyll-metadata")
       File.open(metadata_file, "w") do |file|
-        file.puts Marshal.dump({ foo: 'bar' })[0,5]
+        file.puts Marshal.dump({ :foo => "bar" })[0, 5]
       end
 
       @regenerator = Regenerator.new(@site)
@@ -282,7 +283,7 @@ class TestRegenerator < JekyllUnitTest
     end
 
     should "not regenerate again if multiple dependencies" do
-      multi_deps = @regenerator.metadata.select {|k,v| v['deps'].length > 2}
+      multi_deps = @regenerator.metadata.select { |_k, v| v["deps"].length > 2 }
       multi_dep_path = multi_deps.keys.first
 
       assert @regenerator.metadata[multi_dep_path]["deps"].length > 2
@@ -296,13 +297,32 @@ class TestRegenerator < JekyllUnitTest
     end
 
     should "regenerate everything if metadata is disabled" do
-      @site.config["full_rebuild"] = true
+      @site.config["incremental"] = false
       @regenerator.clear
       @regenerator.add(@path)
       @regenerator.write_metadata
       @regenerator = Regenerator.new(@site)
 
       assert @regenerator.modified?(@path)
+    end
+  end
+
+  context "when incremental regeneration is disabled" do
+    setup do
+      FileUtils.rm_rf(source_dir(".jekyll-metadata"))
+      @site = Site.new(Jekyll.configuration({
+        "source"      => source_dir,
+        "destination" => dest_dir,
+        "incremental" => false,
+      }))
+
+      @site.process
+      @path = @site.in_source_dir(@site.pages.first.path)
+      @regenerator = @site.regenerator
+    end
+
+    should "not create .jekyll-metadata" do
+      refute File.file?(source_dir(".jekyll-metadata"))
     end
   end
 end

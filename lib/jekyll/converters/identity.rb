@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Jekyll
   module Converters
     class Identity < Converter
@@ -5,7 +7,7 @@ module Jekyll
 
       priority :lowest
 
-      def matches(ext)
+      def matches(_ext)
         true
       end
 
